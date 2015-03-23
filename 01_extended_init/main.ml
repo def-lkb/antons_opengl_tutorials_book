@@ -39,22 +39,22 @@ module Helpers = struct
     done;
     arr
 
-  let one = alloc_buffer 1
+  let small_buf = alloc_buffer 8
 
   let gen_buffer () =
-    Gl.gen_buffers 1 one;
-    Int32.to_int one.{0}
+    Gl.gen_buffers 1 small_buf;
+    Int32.to_int small_buf.{0}
 
   let gen_vertex_array () =
-    Gl.gen_vertex_arrays 1 one;
-    Int32.to_int one.{0}
+    Gl.gen_vertex_arrays 1 small_buf;
+    Int32.to_int small_buf.{0}
 
   let float_buffer arr =
     Bigarray.Array1.of_array
       Bigarray.float32 Bigarray.c_layout
       arr
 
-  let log_file = open_out_gen [Open_creat; Open_trunc; Open_wronly] 644
+  let log_file = open_out_gen [Open_creat; Open_trunc; Open_wronly] 0o644
       "gl.log"
 
   let gl_log f = Printf.fprintf log_file f
@@ -89,8 +89,8 @@ let init_scene () =
 
 let log_gl_params () =
   let log_gl_int_param (param,name) =
-    Gl.get_integerv param one;
-    gl_log "%s %ld\n" name one.{0}
+    Gl.get_integerv param small_buf;
+    gl_log "%s %ld\n" name small_buf.{0}
   in
   gl_log "GL Context Params:\n";
   (* integers - only works if the order is 0-10 integer return types *)
@@ -105,9 +105,12 @@ let log_gl_params () =
     Gl.max_vertex_attribs              , "GL_MAX_VERTEX_ATTRIBS";
     Gl.max_vertex_texture_image_units  , "GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS";
     Gl.max_vertex_uniform_components   , "GL_MAX_VERTEX_UNIFORM_COMPONENTS";
-  ]
-  (* TODO GL_MAX_VIEWPORT_DIMS, two ints
-     GL_STEREO, bool *)
+  ];
+  Gl.get_integerv Gl.max_viewport_dims small_buf;
+  gl_log "GL_MAX_VIEWPORT_DIMS %ld %ld\n" small_buf.{0} small_buf.{1};
+  let tmp = Bigarray.(Array1.create int8_unsigned c_layout 1) in
+  Gl.get_booleanv Gl.stereo tmp;
+  gl_log "GL_STEREO %b\n" (tmp.{0} <> 0)
 
 let fps_counter () =
   let frame_count = ref 0 in
@@ -124,6 +127,22 @@ let fps_counter () =
       end
     else
       incr frame_count
+
+let frame_timer fps =
+  let tick = ref (Unix.gettimeofday ()) in
+  let delta = 1. /. float_of_int fps in
+  fun () ->
+    let now = Unix.gettimeofday () in
+    let tick' = !tick +. delta in
+    let delay =
+      if now > tick' then
+        (tick := now; 0.)
+      else if now > !tick then
+        (tick := tick'; tick' -. now)
+      else
+        (!tick -. now)
+    in
+    int_of_float (delay *. 1000.)
 
 let main () =
   let points = float_buffer [|
@@ -157,6 +176,7 @@ let main () =
     (option_get @@ Gl.get_string Gl.renderer);
   Printf.printf "OpenGL version supported %s\n%!"
     (option_get @@ Gl.get_string Gl.version);
+  log_gl_params ();
 
   (* tell GL to only draw onto a pixel if the shape is closer to the viewer *)
   Gl.enable Gl.depth_test;
@@ -209,10 +229,11 @@ let main () =
   let event = Sdl.Event.create () in
   let width = ref 640 and height = ref 480 in
   let update_fps_counter = fps_counter () in
+  let frame_timer = frame_timer 60 in
   (* The main event loop *)
   let rec loop () =
     let is_done =
-      if Sdl.wait_event_timeout (Some event) (1000 / 60) then
+      if Sdl.wait_event_timeout (Some event) (frame_timer ()) then
         match Sdl.Event.(enum (get event typ)) with
         | `Quit -> true
         | `Window_event
