@@ -108,7 +108,7 @@ let main () =
        sx 0.0 0.0   0.0 (* first column  *)
       0.0  sy 0.0   0.0 (* second column *)
       0.0 0.0  sz (-1.0) (* third column  *)
-      0.5 0.0  pz   0.0 (* fourth column *)
+      0.0 0.0  pz   0.0 (* fourth column *)
   in
 
   (* create view matrix *)
