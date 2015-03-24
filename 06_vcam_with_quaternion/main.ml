@@ -27,6 +27,7 @@ let create_program vertex fragment =
   let ps = Gl.create_program () in
   Gl.attach_shader ps vs;
   Gl.attach_shader ps fs;
+  Gl.bind_attrib_location ps 0 "vertex_position";
   Gl.link_program ps;
   Gl.get_programiv ps Gl.link_status small_buf;
   if Int32.to_int small_buf.{0} <> Gl.true_ then
@@ -226,7 +227,7 @@ let main () =
 
         if check_key Sdl.Scancode.c then
           begin
-            cam_roll := !cam_roll -. cam_heading_speed *. elapsed_seconds;
+            cam_roll := !cam_roll +. cam_heading_speed *. elapsed_seconds;
             cam_moved := true;
             (* create a quaternion representing change in heading (the yaw) *)
             quaternion := Q.(%*%) (Q.from_axis_deg !cam_roll (v3_of_v4 !fwd)) !quaternion;
