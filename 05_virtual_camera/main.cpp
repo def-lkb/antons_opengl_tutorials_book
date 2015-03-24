@@ -39,23 +39,23 @@ int main () {
 		 0.5f, -0.5f,	0.0f,
 		-0.5f, -0.5f,	0.0f
 	};
-	
+
 	GLfloat colours[] = {
 		1.0f, 0.0f,  0.0f,
 		0.0f, 1.0f,  0.0f,
 		0.0f, 0.0f,  1.0f
 	};
-	
+
 	GLuint points_vbo;
 	glGenBuffers (1, &points_vbo);
 	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);
 	glBufferData (GL_ARRAY_BUFFER, 9 * sizeof (GLfloat), points, GL_STATIC_DRAW);
-	
+
 	GLuint colours_vbo;
 	glGenBuffers (1, &colours_vbo);
 	glBindBuffer (GL_ARRAY_BUFFER, colours_vbo);
 	glBufferData (GL_ARRAY_BUFFER, 9 * sizeof (GLfloat), colours, GL_STATIC_DRAW);
-	
+
 	GLuint vao;
 	glGenVertexArrays (1, &vao);
 	glBindVertexArray (vao);
@@ -71,12 +71,12 @@ int main () {
 	char fragment_shader[1024 * 256];
 	assert (parse_file_into_str ("test_vs.glsl", vertex_shader, 1024 * 256));
 	assert (parse_file_into_str ("test_fs.glsl", fragment_shader, 1024 * 256));
-	
+
 	GLuint vs = glCreateShader (GL_VERTEX_SHADER);
 	const GLchar* p = (const GLchar*)vertex_shader;
 	glShaderSource (vs, 1, &p, NULL);
 	glCompileShader (vs);
-	
+
 	// check for compile errors
 	int params = -1;
 	glGetShaderiv (vs, GL_COMPILE_STATUS, &params);
@@ -85,12 +85,12 @@ int main () {
 		print_shader_info_log (vs);
 		return 1; // or exit or something
 	}
-	
+
 	GLuint fs = glCreateShader (GL_FRAGMENT_SHADER);
 	p = (const GLchar*)fragment_shader;
 	glShaderSource (fs, 1, &p, NULL);
 	glCompileShader (fs);
-	
+
 	// check for compile errors
 	glGetShaderiv (fs, GL_COMPILE_STATUS, &params);
 	if (GL_TRUE != params) {
@@ -98,12 +98,12 @@ int main () {
 		print_shader_info_log (fs);
 		return 1; // or exit or something
 	}
-	
+
 	GLuint shader_programme = glCreateProgram ();
 	glAttachShader (shader_programme, fs);
 	glAttachShader (shader_programme, vs);
 	glLinkProgram (shader_programme);
-	
+
 	glGetProgramiv (shader_programme, GL_LINK_STATUS, &params);
 	if (GL_TRUE != params) {
 		fprintf (
@@ -114,7 +114,7 @@ int main () {
 		print_programme_info_log (shader_programme);
 		return false;
 	}
-	
+
 /*--------------------------create camera matrices----------------------------*/
 	/* create PROJECTION MATRIX */
 	#define ONE_DEG_IN_RAD (2.0 * M_PI) / 360.0 // 0.017444444
@@ -135,7 +135,7 @@ int main () {
 		0.0f, 0.0f, Sz, -1.0f,
 		0.0f, 0.0f, Pz, 0.0f
 	};
-	
+
 	/* create VIEW MATRIX */
 	float cam_speed = 1.0f; // 1 unit per second
 	float cam_yaw_speed = 10.0f; // 10 degrees per second
@@ -144,7 +144,7 @@ int main () {
 	mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2]));
 	mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw);
 	mat4 view_mat = R * T;
-	
+
 	/* get location numbers of matrices in shader programme */
 	GLint view_mat_location = glGetUniformLocation (shader_programme, "view");
 	GLint proj_mat_location = glGetUniformLocation (shader_programme, "proj");
@@ -152,31 +152,31 @@ int main () {
 	glUseProgram (shader_programme);
 	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view_mat.m);
 	glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, proj_mat);
-	
+
 /*------------------------------rendering loop--------------------------------*/
 	/* some rendering defaults */
 	glEnable (GL_CULL_FACE); // cull face
 	glCullFace (GL_BACK); // cull back face
 	glFrontFace (GL_CW); // GL_CCW for counter clock-wise
-	
+
 	while (!glfwWindowShouldClose (g_window)) {
 		static double previous_seconds = glfwGetTime ();
 		double current_seconds = glfwGetTime ();
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
-	
+
 		_update_fps_counter (g_window);
 		// wipe the drawing surface clear
 		glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glViewport (0, 0, g_gl_width, g_gl_height);
-		
+
 		glUseProgram (shader_programme);
 		glBindVertexArray (vao);
 		// draw points 0-3 from the currently bound VAO with current in-use shader
 		glDrawArrays (GL_TRIANGLES, 0, 3);
-		// update other events like input handling 
+		// update other events like input handling
 		glfwPollEvents ();
-		
+
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
 		bool cam_moved = false;
@@ -215,18 +215,19 @@ int main () {
 		/* update view matrix */
 		if (cam_moved) {
 			mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2])); // cam translation
-			mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw); // 
+			mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw); //
 			mat4 view_mat = R * T;
+      print(view_mat);
 			glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view_mat.m);
 		}
-		
+
 		if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose (g_window, 1);
 		}
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
 	}
-	
+
 	// close GL context and any other GLFW resources
 	glfwTerminate();
 	return 0;

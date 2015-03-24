@@ -233,10 +233,13 @@ module M4 = struct
                  e; f; g; h;
                  i; j; k; l;
                  m; n; o; p} =
-    Printf.sprintf "[[%f; %f; %f; %f]; [%f; %f; %f; %f]; [%f; %f; %f; %f]; [%f; %f; %f; %f]]"
+    Printf.sprintf "[[%f; %f; %f; %f];\n [%f; %f; %f; %f];\n [%f; %f; %f; %f];\n [%f; %f; %f; %f]]"
       a b c d e f g h i j k l m n o p
 
   let buf = Bigarray.(Array1.create float32 c_layout 16)
+
+  let make a b c d e f g h i j k l m n o p =
+    {a; b; c; d; e; f; g; h; i; j; k; l; m; n; o; p}
 
   let m {a; b; c; d; e; f; g; h; i; j; k; l; m; n; o; p} =
     let open Bigarray.Array1 in
@@ -275,10 +278,10 @@ module M4 = struct
       let col = col * 4 in
       for row = 0 to 3 do
         unsafe_set result (col + row)
-          ((unsafe_get m1 (row +  0) +. unsafe_get m2 (col + 0)) +.
-           (unsafe_get m1 (row +  4) +. unsafe_get m2 (col + 1)) +.
-           (unsafe_get m1 (row +  8) +. unsafe_get m2 (col + 2)) +.
-           (unsafe_get m1 (row + 12) +. unsafe_get m2 (col + 3)))
+          ((unsafe_get m1 (row +  0) *. unsafe_get m2 (col + 0)) +.
+           (unsafe_get m1 (row +  4) *. unsafe_get m2 (col + 1)) +.
+           (unsafe_get m1 (row +  8) *. unsafe_get m2 (col + 2)) +.
+           (unsafe_get m1 (row + 12) *. unsafe_get m2 (col + 3)))
       done
     done;
     (Obj.magic result : t)
@@ -406,7 +409,7 @@ module M4 = struct
   let rotate_y_deg m deg =
     let rad = deg *. one_deg_in_rad in
     let c = cos rad and s = sin rad in
-    let m_r = {identity with a = c; c = -.s; h = s; k = c} in
+    let m_r = {identity with a = c; i = s; c = -.s; k = c} in
     m_r *% m
 
   let rotate_z_deg m deg =
