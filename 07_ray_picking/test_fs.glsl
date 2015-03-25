@@ -1,4 +1,4 @@
-#version 410
+#version 130
 
 in float dist;
 uniform float blue = 0.0;

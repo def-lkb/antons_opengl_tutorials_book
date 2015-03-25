@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#define MESH_FILE "sphere.obj"
+#define MESH_FILE "sphere.fobj"
 #define VERTEX_SHADER_FILE "test_vs.glsl"
 #define FRAGMENT_SHADER_FILE "test_fs.glsl"
 #define NUM_SPHERES 4
