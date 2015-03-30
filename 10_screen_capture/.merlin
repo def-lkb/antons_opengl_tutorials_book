@@ -1,0 +1,2 @@
+B _build
+PKG tgls.tgl4 tsdl stb_image stb_image_write
