@@ -81,7 +81,7 @@ bool gl_log_err (const char* message, ...) {
 /*--------------------------------GLFW3 and GLEW------------------------------*/
 bool start_gl () {
 	gl_log ("starting GLFW %s", glfwGetVersionString ());
-	
+
 	glfwSetErrorCallback (glfw_error_callback);
 	if (!glfwInit ()) {
 		fprintf (stderr, "ERROR: could not start GLFW3\n");
@@ -110,9 +110,9 @@ bool start_gl () {
 	}
 	glfwSetWindowSizeCallback (g_window, glfw_window_size_callback);
 	glfwMakeContextCurrent (g_window);
-	
+
 	glfwWindowHint (GLFW_SAMPLES, 4);
-	
+
 	// start GLEW extension handler
 	glewExperimental = GL_TRUE;
 	glewInit ();
@@ -123,7 +123,7 @@ bool start_gl () {
 	printf ("Renderer: %s\n", renderer);
 	printf ("OpenGL version supported %s\n", version);
 	gl_log ("renderer: %s\nversion: %s\n", renderer, version);
-	
+
 	return true;
 }
 
@@ -248,6 +248,9 @@ bool create_programme (GLuint vert, GLuint frag, GLuint* programme) {
 	);
 	glAttachShader (*programme, vert);
 	glAttachShader (*programme, frag);
+  glBindAttribLocation(*programme, 0, "vertex_position");
+  glBindAttribLocation(*programme, 1, "vertex_normal");
+  glBindAttribLocation(*programme, 2, "texture_coord");
 	// link the shader programme. if binding input attributes do that before link
 	glLinkProgram (*programme);
 	GLint params = -1;

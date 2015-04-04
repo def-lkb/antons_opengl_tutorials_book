@@ -25,12 +25,7 @@
 #define GL_LOG_FILE "gl.log"
 #define VERTEX_SHADER_FILE "test_vs.glsl"
 #define FRAGMENT_SHADER_FILE "test_fs.glsl"
-#define MESH_FILE "suzanne.obj"
-
-GLfloat* g_vp = NULL; // array of vertex points
-GLfloat* g_vn = NULL; // array of vertex normals
-GLfloat* g_vt = NULL; // array of texture coordinates
-int g_point_count = 0;
+#define MESH_FILE "suzanne.fobj"
 
 // keep track of window size for things like the viewport and the mouse cursor
 int g_gl_width = 640;
@@ -69,7 +64,6 @@ bool load_texture (const char* file_name, GLuint* tex) {
 		}
 	}
 	glGenTextures (1, tex);
-	glActiveTexture (GL_TEXTURE0);
 	glBindTexture (GL_TEXTURE_2D, *tex);
 	glTexImage2D (
 		GL_TEXTURE_2D,
@@ -106,7 +100,7 @@ int main () {
 	glFrontFace (GL_CCW); // set counter-clock-wise vertex order to mean the front
 	glClearColor (0.2, 0.2, 0.2, 1.0); // grey background to help spot mistakes
 	glViewport (0, 0, g_gl_width, g_gl_height);
-	
+
 /*------------------------------CREATE GEOMETRY-------------------------------*/
 	GLfloat* vp = NULL; // array of vertex points
 	GLfloat* vn = NULL; // array of vertex normals
@@ -139,23 +133,27 @@ int main () {
 		glEnableVertexAttribArray (1);
 	}
 	GLuint texcoords_vbo;
-	if (NULL != vp) {
+	if (NULL != vt) {
 		glGenBuffers (1, &texcoords_vbo);
 		glBindBuffer (GL_ARRAY_BUFFER, texcoords_vbo);
 		glBufferData (
-			GL_ARRAY_BUFFER, 2 * g_point_count * sizeof (GLfloat), vp, GL_STATIC_DRAW
+			GL_ARRAY_BUFFER, 2 * g_point_count * sizeof (GLfloat), vt, GL_STATIC_DRAW
 		);
 		glVertexAttribPointer (2, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray (2);
 	}
-	
+
 /*-------------------------------CREATE SHADERS-------------------------------*/
 	GLuint shader_programme = create_programme_from_files (
 		VERTEX_SHADER_FILE, FRAGMENT_SHADER_FILE
 	);
 	int view_mat_location = glGetUniformLocation (shader_programme, "view");
 	int proj_mat_location = glGetUniformLocation (shader_programme, "proj");
-	
+	int diffuse_map = glGetUniformLocation (shader_programme, "diffuse_map");
+	int specular_map = glGetUniformLocation (shader_programme, "specular_map");
+	int ambient_map = glGetUniformLocation (shader_programme, "ambient_map");
+	int emission_map = glGetUniformLocation (shader_programme, "emission_map");
+
 	// load texture
 	GLuint tex_diff, tex_spec, tex_amb, tex_emiss;
 	glActiveTexture (GL_TEXTURE0);
@@ -166,7 +164,7 @@ int main () {
 	assert (load_texture ("ao.png", &tex_amb));
 	glActiveTexture (GL_TEXTURE3);
 	assert (load_texture ("tileable9b_emiss.png", &tex_emiss));
-	
+
 	#define ONE_DEG_IN_RAD (2.0 * M_PI) / 360.0 // 0.017444444
 	// input variables
 	float near = 0.1f; // clipping plane
@@ -185,8 +183,8 @@ int main () {
 		0.0f, 0.0f, Sz, -1.0f,
 		0.0f, 0.0f, Pz, 0.0f
 	};
-	
-		
+
+
 	float cam_speed = 1.0f; // 1 unit per second
 	float cam_yaw_speed = 10.0f; // 10 degrees per second
 	float cam_pos[] = {0.0f, 0.0f, 5.0f}; // don't start at zero, or we will be too close
@@ -194,29 +192,33 @@ int main () {
 	mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2]));
 	mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw);
 	mat4 view_mat = R * T;
-	
+
 	glUseProgram (shader_programme);
 	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view_mat.m);
 	glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, proj_mat);
-	
+  glUniform1i (diffuse_map, 0);
+  glUniform1i (specular_map, 1);
+  glUniform1i (ambient_map, 2);
+  glUniform1i (emission_map, 3);
+
 	while (!glfwWindowShouldClose (g_window)) {
 		static double previous_seconds = glfwGetTime ();
 		double current_seconds = glfwGetTime ();
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
-	
+
 		_update_fps_counter (g_window);
 		// wipe the drawing surface clear
 		glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glViewport (0, 0, g_gl_width, g_gl_height);
-		
+
 		glUseProgram (shader_programme);
 		glBindVertexArray (vao);
 		// draw points 0-3 from the currently bound VAO with current in-use shader
 		glDrawArrays (GL_TRIANGLES, 0, g_point_count);
-		// update other events like input handling 
+		// update other events like input handling
 		glfwPollEvents ();
-		
+
 		// control keys
 		bool cam_moved = false;
 		if (glfwGetKey (g_window, GLFW_KEY_A)) {
@@ -254,19 +256,19 @@ int main () {
 		// update view matrix
 		if (cam_moved) {
 			mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2])); // cam translation
-			mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw); // 
+			mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw); //
 			mat4 view_mat = R * T;
 			glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view_mat.m);
 		}
-		
-		
+
+
 		if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose (g_window, 1);
 		}
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
 	}
-	
+
 	// close GL context and any other GLFW resources
 	glfwTerminate();
 	return 0;
