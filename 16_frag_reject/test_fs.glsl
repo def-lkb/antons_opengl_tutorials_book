@@ -1,4 +1,4 @@
-#version 410
+#version 130
 
 in vec2 texture_coordinates;
 uniform sampler2D basic_texture;
