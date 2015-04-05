@@ -1,7 +1,7 @@
-#version 410
+#version 130
 
-layout (location = 0) in vec3 vertex_position;
-layout (location = 1) in vec2 vt; // per-vertex texture co-ords
+in vec3 vertex_position;
+in vec2 vt; // per-vertex texture co-ords
 
 uniform mat4 model, view, proj;
 
