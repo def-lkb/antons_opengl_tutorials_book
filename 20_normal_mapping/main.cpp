@@ -50,12 +50,12 @@ bool load_mesh (const char* file_name) {
 	printf ("  %i materials\n", scene->mNumMaterials);
 	printf ("  %i meshes\n", scene->mNumMeshes);
 	printf ("  %i textures\n", scene->mNumTextures);
-	
+
 	// get first mesh only
 	const aiMesh* mesh = scene->mMeshes[0];
 	printf ("    %i vertices in mesh[0]\n", mesh->mNumVertices);
 	g_point_count = mesh->mNumVertices;
-	
+
 	// allocate memory for vertex points
 	if (mesh->HasPositions ()) {
 		printf ("mesh has positions\n");
@@ -73,7 +73,7 @@ bool load_mesh (const char* file_name) {
 		printf ("mesh has tangents\n");
 		g_vtans = (GLfloat*)malloc (g_point_count * 4 * sizeof (GLfloat));
 	}
-	
+
 	for (unsigned int v_i = 0; v_i < mesh->mNumVertices; v_i++) {
 		if (mesh->HasPositions ()) {
 			const aiVector3D* vp = &(mesh->mVertices[v_i]);
@@ -120,11 +120,11 @@ bool load_mesh (const char* file_name) {
 			g_vtans[v_i * 4 + 3] = det;
 		}
 	}
-	
+
 	aiReleaseImport (scene);
-	
+
 	printf ("mesh loaded\n");
-	
+
 	return true;
 }
 
@@ -135,7 +135,7 @@ int main () {
 	glEnable (GL_DEPTH_TEST); // enable depth-testing
 	glDepthFunc (GL_LESS); // depth-testing interprets a smaller value as "closer"
 
-	assert (load_mesh ("suzanne.obj"));
+	assert (load_mesh ("suzanne.fobj"));
 
 	GLuint vao;
 	glGenVertexArrays (1, &vao);
@@ -151,7 +151,7 @@ int main () {
 		glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray (0);
 	}
-	
+
 	GLuint normals_vbo;
 	if (NULL != g_vn) {
 		glGenBuffers (1, &normals_vbo);
@@ -162,7 +162,7 @@ int main () {
 		glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray (1);
 	}
-	
+
 	GLuint texcoords_vbo;
 	if (NULL != g_vt) {
 		glGenBuffers (1, &texcoords_vbo);
@@ -173,7 +173,7 @@ int main () {
 		glVertexAttribPointer (2, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray (2);
 	}
-	
+
 	GLuint tangents_vbo;
 	if (NULL != g_vtans) {
 		glGenBuffers (1, &tangents_vbo);
@@ -187,10 +187,10 @@ int main () {
 		glVertexAttribPointer (3, 4, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray (3);
 	}
-	
+
 	GLuint shader_programme = create_programme_from_files (
 		"test_vs.glsl", "test_fs.glsl");
-	
+
 	#define ONE_DEG_IN_RAD (2.0 * M_PI) / 360.0 // 0.017444444
 	// input variables
 	float near = 0.1f; // clipping plane
@@ -209,8 +209,8 @@ int main () {
 		0.0f, 0.0f, Sz, -1.0f,
 		0.0f, 0.0f, Pz, 0.0f
 	};
-	
-		
+
+
 	float cam_speed = 1.0f; // 1 unit per second
 	float cam_yaw_speed = 10.0f; // 10 degrees per second
 	float cam_pos[] = {0.0f, 0.0f, 5.0f}; // don't start at zero, or we will be too close
@@ -218,7 +218,7 @@ int main () {
 	mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2]));
 	mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw);
 	mat4 view_mat = R * T;
-	
+
 	int model_mat_location = glGetUniformLocation (shader_programme, "model");
 	int view_mat_location = glGetUniformLocation (shader_programme, "view");
 	int proj_mat_location = glGetUniformLocation (shader_programme, "proj");
@@ -226,33 +226,33 @@ int main () {
 	glUniformMatrix4fv (model_mat_location, 1, GL_FALSE, identity_mat4 ().m);
 	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view_mat.m);
 	glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, proj_mat);
-	
+
 	// load normal map image into texture
 	GLuint nmap_tex;
 	assert (load_texture (NMAP_IMG_FILE, &nmap_tex));
-	
+
 	glEnable (GL_CULL_FACE); // cull face
 	glCullFace (GL_BACK); // cull back face
 	glFrontFace (GL_CCW); // GL_CCW for counter clock-wise
-	
+
 	while (!glfwWindowShouldClose (g_window)) {
 		static double previous_seconds = glfwGetTime ();
 		double current_seconds = glfwGetTime ();
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
-	
+
 		_update_fps_counter (g_window);
 		// wipe the drawing surface clear
 		glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glViewport (0, 0, g_gl_width, g_gl_height);
-		
+
 		glUseProgram (shader_programme);
 		glBindVertexArray (vao);
 		// draw points 0-3 from the currently bound VAO with current in-use shader
 		glDrawArrays (GL_TRIANGLES, 0, g_point_count);
-		// update other events like input handling 
+		// update other events like input handling
 		glfwPollEvents ();
-		
+
 		// control keys
 		bool cam_moved = false;
 		if (glfwGetKey (g_window, GLFW_KEY_A)) {
@@ -290,19 +290,19 @@ int main () {
 		// update view matrix
 		if (cam_moved) {
 			mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2])); // cam translation
-			mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw); // 
+			mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw); //
 			mat4 view_mat = R * T;
 			glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view_mat.m);
 		}
-		
-		
+
+
 		if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose (g_window, 1);
 		}
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
 	}
-	
+
 	// close GL context and any other GLFW resources
 	glfwTerminate();
 	return 0;
